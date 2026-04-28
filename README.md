@@ -72,16 +72,6 @@ java -jar target/bugtracker-1.0.0.jar
 
 ---
 
-## 🔑 Default Login Credentials
-
-| Role | Username | Password |
-|---|---|---|
-| **Admin** | `admin` | `admin123` |
-| **Developer** | `dev1` | `dev123` |
-| **Developer** | `dev2` | `dev123` |
-| **Tester** | `tester1` | `test123` |
-
----
 
 ## 📁 Project Structure
 
