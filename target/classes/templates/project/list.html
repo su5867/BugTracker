@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Projects')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="page-wrapper">
+  <div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h3 fw-bold mb-0">Projects</h1>
+        <p class="text-muted mb-0" th:text="${projects.size()} + ' projects'">0 projects</p>
+      </div>
+      <a th:href="@{/projects/new}" sec:authorize="hasAuthority('ROLE_ADMIN')"
+         class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>New Project
+      </a>
+    </div>
+
+    <!-- Flash -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show">
+      <span th:text="${success}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Cards -->
+    <div class="row g-4" th:if="${not #lists.isEmpty(projects)}">
+      <div class="col-xl-4 col-md-6" th:each="project : ${projects}">
+        <div class="card border-0 shadow-sm h-100 project-card">
+          <div class="card-body p-4">
+
+            <!-- Top row -->
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="project-icon rounded-3 p-2 bg-primary-subtle">
+                <i class="fas fa-project-diagram text-primary"></i>
+              </div>
+              <span class="badge rounded-pill px-3 py-2"
+                    th:text="${project.status}"
+                    th:classappend="${project.status.name() == 'ACTIVE'}   ? ' bg-success-subtle text-success'
+                                 : (${project.status.name() == 'COMPLETED'} ? ' bg-secondary-subtle text-secondary'
+                                 : ' bg-warning-subtle text-warning')">
+              </span>
+            </div>
+
+            <h5 class="fw-bold mb-1" th:text="${project.name}">Name</h5>
+            <p class="text-muted small mb-3"
+               style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"
+               th:text="${project.description}">Desc</p>
+
+            <!-- Stats row -->
+            <div class="row text-center border-top pt-3">
+              <div class="col-4">
+                <!-- FIX: members is lazy; access size inside th:with to keep it in transaction scope -->
+                <div class="fw-bold" th:text="${project.members != null ? project.members.size() : 0}">0</div>
+                <div class="text-muted" style="font-size:11px">Members</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold" th:text="${project.bugs != null ? project.bugs.size() : 0}">0</div>
+                <div class="text-muted" style="font-size:11px">Bugs</div>
+              </div>
+              <div class="col-4">
+                <!-- FIX: null-safe date format -->
+                <div class="fw-bold small"
+                     th:text="${project.startDate != null} ? ${#temporals.format(project.startDate,'MMM d')} : '-'">
+                  -
+                </div>
+                <div class="text-muted" style="font-size:11px">Start</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer actions -->
+          <div class="card-footer bg-transparent border-0 d-flex gap-2 pt-0 pb-3 px-4">
+            <a th:href="@{/projects/{id}(id=${project.id})}"
+               class="btn btn-sm btn-outline-primary flex-fill">
+              <i class="fas fa-eye me-1"></i>View
+            </a>
+            <a th:href="@{/projects/{id}/edit(id=${project.id})}"
+               sec:authorize="hasAuthority('ROLE_ADMIN')"
+               class="btn btn-sm btn-outline-secondary">
+              <i class="fas fa-edit"></i>
+            </a>
+            <form th:action="@{/projects/{id}/delete(id=${project.id})}" method="post"
+                  sec:authorize="hasAuthority('ROLE_ADMIN')"
+                  onsubmit="return confirm('Delete this project and all its bugs?')">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div th:if="${#lists.isEmpty(projects)}" class="text-center py-5">
+      <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+      <h5 class="text-muted">No projects found</h5>
+      <a th:href="@{/projects/new}" sec:authorize="hasAuthority('ROLE_ADMIN')"
+         class="btn btn-primary mt-2">Create First Project</a>
+    </div>
+
+  </div>
+</div>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

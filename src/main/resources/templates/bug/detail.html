@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Bug Detail')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<div class="page-wrapper">
+  <div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div class="d-flex align-items-center gap-2">
+        <a th:href="@{/bugs}" class="btn btn-sm btn-outline-secondary">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="h4 fw-bold mb-0" th:text="${bug.title}">Bug Title</h1>
+            <span class="badge"
+                  th:classappend="${bug.priority.name() == 'CRITICAL'} ? 'bg-danger'
+                               : (${bug.priority.name() == 'HIGH'}     ? 'bg-warning text-dark'
+                               : (${bug.priority.name() == 'MEDIUM'}   ? 'bg-info text-dark'
+                               : 'bg-secondary'))"
+                  th:text="${bug.priority}"></span>
+          </div>
+          <small class="text-muted">
+            Bug #<span th:text="${bug.id}"></span> in
+            <a th:href="@{/projects/{id}(id=${bug.project.id})}"
+               th:text="${bug.project.name}"
+               class="text-decoration-none"></a>
+          </small>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <a th:href="@{/bugs/{id}/edit(id=${bug.id})}"
+           class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-edit me-1"></i>Edit
+        </a>
+        <form th:action="@{/bugs/{id}/delete(id=${bug.id})}" method="post"
+              onsubmit="return confirm('Delete this bug permanently?')"
+              sec:authorize="hasAnyAuthority('ROLE_ADMIN','ROLE_TESTER')">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-trash me-1"></i>Delete
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Flash -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible fade show">
+      <span th:text="${success}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+      <span th:text="${error}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- ── Main column ─────────────────────────────────────────────── -->
+      <div class="col-lg-8">
+
+        <!-- Description -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0 py-3">
+            <h6 class="fw-bold mb-0">
+              <i class="fas fa-align-left me-2 text-muted"></i>Description
+            </h6>
+          </div>
+          <div class="card-body">
+            <p class="mb-0" style="white-space:pre-wrap"
+               th:text="${bug.description != null and !bug.description.isEmpty()} ? ${bug.description} : 'No description provided.'">
+            </p>
+          </div>
+        </div>
+
+        <!-- Quick status update -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-3">
+            <form th:action="@{/bugs/{id}/status(id=${bug.id})}" method="post"
+                  class="d-flex align-items-center gap-3 flex-wrap">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+              <label class="fw-semibold mb-0 text-nowrap">Quick Status:</label>
+              <select name="status" class="form-select form-select-sm" style="max-width:200px">
+                <option th:each="s : ${statuses}"
+                        th:value="${s}"
+                        th:text="${s}"
+                        th:selected="${s == bug.status}"></option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                <i class="fas fa-sync-alt me-1"></i>Update Status
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Attachments - FIX: null-safe and lazy-safe -->
+        <div class="card border-0 shadow-sm mb-4"
+             th:if="${bug.attachments != null and !bug.attachments.isEmpty()}">
+          <div class="card-header bg-white border-0 py-3">
+            <h6 class="fw-bold mb-0">
+              <i class="fas fa-paperclip me-2 text-muted"></i>Attachments
+              (<span th:text="${bug.attachments.size()}">0</span>)
+            </h6>
+          </div>
+          <div class="card-body">
+            <div th:each="att : ${bug.attachments}"
+                 class="d-flex align-items-center gap-3 p-2 border rounded-3 mb-2">
+              <i class="fas fa-file text-primary fs-5"></i>
+              <div class="flex-fill">
+                <div class="fw-semibold small" th:text="${att.originalName}">file</div>
+                <div class="text-muted" style="font-size:11px"
+                     th:text="${att.fileType != null ? att.fileType : 'Unknown type'}"></div>
+              </div>
+              <a th:href="@{/bugs/{bid}/attachments/{aid}/download(bid=${bug.id},aid=${att.id})}"
+                 class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-download me-1"></i>Download
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comments - FIX: null-safe lazy collections -->
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white border-0 py-3">
+            <h6 class="fw-bold mb-0">
+              <i class="fas fa-comments me-2 text-muted"></i>Comments
+              (<span th:text="${bug.comments != null ? bug.comments.size() : 0}">0</span>)
+            </h6>
+          </div>
+          <div class="card-body">
+
+            <!-- Existing comments -->
+            <div th:if="${bug.comments != null and !bug.comments.isEmpty()}">
+              <div th:each="comment : ${bug.comments}" class="d-flex gap-3 mb-4">
+                <div class="avatar-sm flex-shrink-0">
+                  <span th:text="${comment.user != null and comment.user.username != null}
+                                  ? ${comment.user.username.substring(0,1).toUpperCase()} : 'U'">U</span>
+                </div>
+                <div class="flex-fill">
+                  <div class="bg-light rounded-3 p-3">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="fw-semibold small"
+                            th:text="${comment.user != null} ?
+                                      (${comment.user.fullName} ?: ${comment.user.username}) : 'Unknown'">
+                      </span>
+                      <!-- FIX: null-safe createdAt -->
+                      <span class="text-muted" style="font-size:11px"
+                            th:text="${comment.createdAt != null} ?
+                                      ${#temporals.format(comment.createdAt,'MMM d, yyyy HH:mm')} : ''">
+                      </span>
+                    </div>
+                    <p class="mb-0 small" style="white-space:pre-wrap"
+                       th:text="${comment.content}"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty comments -->
+            <div th:if="${bug.comments == null or bug.comments.isEmpty()}"
+                 class="text-center text-muted py-3">
+              <i class="fas fa-comment-slash mb-2 d-block"></i>
+              No comments yet. Be the first to comment!
+            </div>
+
+            <hr class="my-3"/>
+
+            <!-- Add comment form -->
+            <div class="d-flex gap-3">
+              <div class="avatar-sm flex-shrink-0">
+                <span sec:authentication="name" class="text-uppercase">U</span>
+              </div>
+              <div class="flex-fill">
+                <form th:action="@{/bugs/{id}/comments(id=${bug.id})}"
+                      th:object="${commentDto}" method="post">
+                  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                  <textarea class="form-control mb-2" th:field="*{content}" rows="3"
+                            placeholder="Write a comment..." required></textarea>
+                  <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Add Comment
+                  </button>
+                </form>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Sidebar ────────────────────────────────────────────────── -->
+      <div class="col-lg-4">
+
+        <!-- Bug details -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0 py-3">
+            <h6 class="fw-bold mb-0">Bug Details</h6>
+          </div>
+          <div class="card-body">
+
+            <div class="mb-3">
+              <small class="text-muted text-uppercase fw-semibold">Status</small>
+              <div class="mt-1">
+                <span class="badge fs-6 rounded-pill"
+                      th:classappend="${bug.status.name() == 'OPEN'}        ? 'bg-danger'
+                                   : (${bug.status.name() == 'IN_PROGRESS'} ? 'bg-primary'
+                                   : (${bug.status.name() == 'RESOLVED'}    ? 'bg-success'
+                                   : 'bg-secondary'))"
+                      th:text="${bug.status}"></span>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <small class="text-muted text-uppercase fw-semibold">Severity</small>
+              <div class="fw-semibold mt-1" th:text="${bug.severity}"></div>
+            </div>
+
+            <div class="mb-3">
+              <small class="text-muted text-uppercase fw-semibold">Assigned To</small>
+              <div class="d-flex align-items-center gap-2 mt-1"
+                   th:if="${bug.assignedTo != null}">
+                <div class="avatar-sm">
+                  <span th:text="${bug.assignedTo.username.substring(0,1).toUpperCase()}">D</span>
+                </div>
+                <span class="fw-semibold"
+                      th:text="${bug.assignedTo.fullName} ?: ${bug.assignedTo.username}"></span>
+              </div>
+              <div th:if="${bug.assignedTo == null}" class="text-muted mt-1">Unassigned</div>
+            </div>
+
+            <div class="mb-3">
+              <small class="text-muted text-uppercase fw-semibold">Reported By</small>
+              <div class="fw-semibold mt-1"
+                   th:text="${bug.createdBy != null} ?
+                              (${bug.createdBy.fullName} ?: ${bug.createdBy.username}) : '—'">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <small class="text-muted text-uppercase fw-semibold">Created</small>
+              <!-- FIX: null-safe datetime -->
+              <div class="fw-semibold mt-1"
+                   th:text="${bug.createdAt != null} ?
+                              ${#temporals.format(bug.createdAt,'dd MMM yyyy, HH:mm')} : '—'">
+              </div>
+            </div>
+
+            <div>
+              <small class="text-muted text-uppercase fw-semibold">Last Updated</small>
+              <!-- FIX: null-safe datetime -->
+              <div class="fw-semibold mt-1"
+                   th:text="${bug.updatedAt != null} ?
+                              ${#temporals.format(bug.updatedAt,'dd MMM yyyy, HH:mm')} : '—'">
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Activity History - FIX: null-safe lazy collection -->
+        <div class="card border-0 shadow-sm"
+             th:if="${bug.history != null and !bug.history.isEmpty()}">
+          <div class="card-header bg-white border-0 py-3">
+            <h6 class="fw-bold mb-0">
+              <i class="fas fa-history me-2 text-muted"></i>Activity History
+            </h6>
+          </div>
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item px-3 py-2"
+                  th:each="h : ${bug.history}">
+                <div class="small fw-semibold"
+                     th:text="${h.fieldChanged != null ? h.fieldChanged + ' changed' : 'Change'}"></div>
+                <div class="small text-muted">
+                  <span th:text="${h.oldValue != null ? h.oldValue : 'None'}"></span>
+                  <i class="fas fa-arrow-right mx-1"></i>
+                  <span class="text-success fw-semibold"
+                        th:text="${h.newValue != null ? h.newValue : '—'}"></span>
+                </div>
+                <div style="font-size:11px" class="text-muted">
+                  by <span th:text="${h.changedBy != null ? h.changedBy.username : 'System'}"></span>
+                  <!-- FIX: null-safe changedAt -->
+                  <span th:if="${h.changedAt != null}">
+                    · <span th:text="${#temporals.format(h.changedAt,'MMM d HH:mm')}"></span>
+                  </span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

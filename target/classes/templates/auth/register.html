@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Register')}"></head>
+<body class="bg-dark d-flex align-items-center justify-content-center" style="min-height:100vh;">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus fa-2x text-danger mb-2"></i>
+                        <h3 class="fw-bold">Create Account</h3>
+                    </div>
+
+                    <div th:if="${error}" class="alert alert-danger py-2" th:text="${error}"></div>
+
+                    <form th:action="@{/register}" th:object="${userDto}" method="post" novalidate>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Full Name</label>
+                            <input type="text" class="form-control" th:field="*{fullName}" placeholder="John Doe"/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{username}" th:classappend="${#fields.hasErrors('username')} ? 'is-invalid'" placeholder="johndoe" required/>
+                            <div class="invalid-feedback" th:errors="*{username}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" th:field="*{email}" th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" placeholder="john@example.com" required/>
+                            <div class="invalid-feedback" th:errors="*{email}"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" th:field="*{password}" th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'" placeholder="Min 6 characters" required/>
+                            <div class="invalid-feedback" th:errors="*{password}"></div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Role</label>
+                            <select class="form-select" th:field="*{role}">
+                                <option value="TESTER">Tester</option>
+                                <option value="DEVELOPER">Developer</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100 fw-semibold py-2">
+                            <i class="fas fa-user-plus me-2"></i>Register
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small>Already have an account? <a th:href="@{/login}" class="text-danger fw-semibold">Login</a></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>
